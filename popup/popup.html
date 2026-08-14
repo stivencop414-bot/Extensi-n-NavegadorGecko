@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PhantomShield</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="header">
+    <div class="title-group">
+      <img src="../icons/icon-48.png" alt="Logo">
+      <h1>PhantomShield</h1>
+    </div>
+    <span id="shield-status" class="status-badge active">Activo</span>
+  </div>
+
+  <div class="card">
+    <div class="toggle-row">
+      <div class="toggle-info">
+        <h2 id="current-domain">Cargando...</h2>
+        <p>Protección en este sitio</p>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="site-toggle" checked>
+        <span class="slider"></span>
+      </label>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="stats-grid">
+      <div class="stat-item">
+        <div class="stat-value" id="site-blocks">0</div>
+        <div class="stat-label">Este sitio</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value" id="total-blocks">0</div>
+        <div class="stat-label">Total bloqueado</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="toggle-row">
+      <div class="toggle-info">
+        <h2>Anti-Rastreo Avanzado</h2>
+        <p>Protección contra fingerprinting</p>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="privacy-toggle" checked>
+        <span class="slider"></span>
+      </label>
+    </div>
+  </div>
+
+  <div class="footer">
+    <span>PhantomShield v8.1.0 para GeckoView</span>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

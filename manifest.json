@@ -1,0 +1,89 @@
+{
+  "manifest_version": 2,
+  "name": "PhantomShield",
+  "short_name": "PhantomShield",
+  "version": "8.1.0",
+  "description": "Bloqueo de anuncios y rastreadores con controles de privacidad para GeckoView.",
+  "icons": {
+    "48": "icons/icon-48.png",
+    "96": "icons/icon-96.png"
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "phantomshield@geckoview.internal"
+    }
+  },
+  "permissions": [
+    "webRequest",
+    "webRequestBlocking",
+    "storage",
+    "alarms",
+    "<all_urls>"
+  ],
+  "browser_action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "PhantomShield",
+    "default_icon": {
+      "48": "icons/icon-48.png",
+      "96": "icons/icon-96.png"
+    }
+  },
+  "background": {
+    "scripts": [
+      "data/domains-adservers.js",
+      "data/domains-trackers.js",
+      "data/domains-popups.js",
+      "background/network-engine.js",
+      "background/filter-lists.js",
+      "background/updater.js",
+      "background/cname-uncloaker.js",
+      "background/surrogate-redirects.js",
+      "background/background.js"
+    ],
+    "persistent": true
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": [
+        "content/content-script.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": true,
+      "match_about_blank": true
+    },
+    {
+      "matches": ["<all_urls>"],
+      "js": [
+        "content/page-hooks.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": true,
+      "match_about_blank": true,
+      "world": "MAIN"
+    },
+    {
+      "matches": ["*://*.facebook.com/*", "*://*.instagram.com/*"],
+      "js": [
+        "content/heuristic-vision.js"
+      ],
+      "run_at": "document_idle",
+      "all_frames": false
+    },
+    {
+      "matches": ["<all_urls>"],
+      "js": [
+        "data/cosmetic-rules.js",
+        "content/link-bypass.js",
+        "content/cosmetic-filter.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": true
+    }
+  ],
+  "web_accessible_resources": [
+    "web-accessible/noop.js",
+    "web-accessible/ga-surrogate.js",
+    "web-accessible/gtm-surrogate.js"
+  ]
+}
