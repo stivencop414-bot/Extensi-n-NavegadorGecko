@@ -1,7 +1,7 @@
 /**
  * PhantomShield - Domains Trackers
  */
-window.PHANTOM_TRACKERS = [
+window.PHANTOM_TRACKER_DOMAINS = [
   "google-analytics.com",
   "hotjar.com",
   "clarity.ms",

@@ -9,17 +9,17 @@
 <body>
   <div class="header">
     <div class="title-group">
-      <img src="../icons/icon-48.png" alt="Logo">
+      <img src="../icons/icon-48.png" alt="">
       <h1>PhantomShield</h1>
     </div>
-    <span id="shield-status" class="status-badge active">Activo</span>
+    <span id="shield-status" class="status-badge">…</span>
   </div>
 
   <div class="card">
     <div class="toggle-row">
       <div class="toggle-info">
         <h2 id="current-domain">Cargando...</h2>
-        <p>Protección en este sitio</p>
+        <p id="site-hint">Protección en este sitio</p>
       </div>
       <label class="switch">
         <input type="checkbox" id="site-toggle" checked>
@@ -32,7 +32,7 @@
     <div class="stats-grid">
       <div class="stat-item">
         <div class="stat-value" id="site-blocks">0</div>
-        <div class="stat-label">Este sitio</div>
+        <div class="stat-label">Esta página</div>
       </div>
       <div class="stat-item">
         <div class="stat-value" id="total-blocks">0</div>
@@ -44,18 +44,36 @@
   <div class="card">
     <div class="toggle-row">
       <div class="toggle-info">
-        <h2>Anti-Rastreo Avanzado</h2>
+        <h2>Bloqueo de anuncios</h2>
+        <p>Interruptor general para todos los sitios</p>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="adblock-toggle" checked>
+        <span class="slider"></span>
+      </label>
+    </div>
+    <div class="divider"></div>
+    <div class="toggle-row">
+      <div class="toggle-info">
+        <h2>Anti-rastreo avanzado</h2>
         <p>Protección contra fingerprinting</p>
       </div>
       <label class="switch">
-        <input type="checkbox" id="privacy-toggle" checked>
+        <input type="checkbox" id="privacy-toggle">
         <span class="slider"></span>
       </label>
     </div>
   </div>
 
+  <div class="actions">
+    <button type="button" id="update-lists">Actualizar listas</button>
+    <button type="button" id="reset-stats" class="secondary">Reiniciar contador</button>
+  </div>
+  <p id="message" class="message" role="status" aria-live="polite"></p>
+
   <div class="footer">
-    <span>PhantomShield v8.1.0 para GeckoView</span>
+    <span id="last-update">Listas: sin actualizar</span>
+    <span id="version">PhantomShield</span>
   </div>
 
   <script src="popup.js"></script>

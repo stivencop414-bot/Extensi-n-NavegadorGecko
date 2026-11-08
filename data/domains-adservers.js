@@ -1,7 +1,7 @@
 /**
  * PhantomShield - Domain Adservers
  */
-window.PHANTOM_ADSERVERS = [
+window.PHANTOM_AD_DOMAINS = [
   "doubleclick.net",
   "googlesyndication.com",
   "googleadservices.com",

@@ -1,7 +1,7 @@
 /**
  * PhantomShield - Domains Popups
  */
-window.PHANTOM_POPUPS = [
+window.PHANTOM_POPUP_DOMAINS = [
   "popads.net",
   "popcash.net",
   "propellerads.com",
