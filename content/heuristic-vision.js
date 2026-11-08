@@ -1,5 +1,5 @@
 /**
- * PhantomShield 8.1 - Sponsored-post detector for Facebook and Instagram.
+ * PhantomShield 8.2 - Sponsored-post detector for Facebook and Instagram.
  */
 (function() {
   'use strict';
@@ -91,19 +91,19 @@
     }
   }
 
-  browser.storage.local.get({ adblockEnabled: true }).then(function(result) {
-    setEnabled(result.adblockEnabled);
-  }).catch(function() {
-    setEnabled(true);
-  });
+  function refreshState() {
+    browser.runtime.sendMessage({ type: 'GET_SITE_STATE' }).then(function(state) {
+      setEnabled(Boolean(state && state.enabled));
+    }).catch(function() {
+      setEnabled(true);
+    });
+  }
+
+  refreshState();
 
   browser.storage.onChanged.addListener(function(changes, areaName) {
-    if (areaName === 'local' && changes.adblockEnabled) {
-      setEnabled(
-        changes.adblockEnabled.newValue === undefined
-          ? true
-          : changes.adblockEnabled.newValue
-      );
+    if (areaName === 'local' && (changes.adblockEnabled || changes.disabled_domains)) {
+      refreshState();
     }
   });
 })();

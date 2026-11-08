@@ -1,5 +1,5 @@
 /**
- * PhantomShield 8.1 - Background orchestrator.
+ * PhantomShield 8.2 - Background orchestrator.
  */
 (function() {
   'use strict';
@@ -20,6 +20,11 @@
 
   const settings = Object.assign({}, DEFAULT_SETTINGS);
   let countPersistTimer = null;
+  let disabledDomains = [];
+
+  // Pestaña -> host de la página principal y anuncios bloqueados en ella.
+  const tabHosts = new Map();
+  const tabBlocked = new Map();
 
   const TRACKING_PARAMS = new Set([
     'gclid', 'dclid', 'fbclid', 'msclkid', 'mc_eid', 'yclid', '_hsenc',
@@ -54,6 +59,51 @@
     }
   }
 
+  function hostOf(value) {
+    if (!value) return '';
+    try {
+      return new URL(value).hostname.toLowerCase();
+    } catch (error) {
+      return '';
+    }
+  }
+
+  function normalizeDomainList(value) {
+    if (!Array.isArray(value)) return [];
+    return value
+      .filter(function(entry) { return typeof entry === 'string' && entry.trim(); })
+      .map(function(entry) { return entry.trim().toLowerCase().replace(/^www\./, ''); });
+  }
+
+  function isHostDisabled(hostname) {
+    if (!hostname) return false;
+    const host = hostname.replace(/^www\./, '');
+    return disabledDomains.some(function(domain) {
+      return hostnameMatches(host, domain);
+    });
+  }
+
+  function isEnabledForHost(hostname) {
+    return settings.adblockEnabled && !isHostDisabled(hostname);
+  }
+
+  function countTabBlock(tabId) {
+    if (typeof tabId !== 'number' || tabId < 0) return;
+    tabBlocked.set(tabId, (tabBlocked.get(tabId) || 0) + 1);
+  }
+
+  function topHostForRequest(details) {
+    if (details.type === 'main_frame') return hostOf(details.url);
+    if (typeof details.tabId === 'number' && tabHosts.has(details.tabId)) {
+      return tabHosts.get(details.tabId);
+    }
+    if (Array.isArray(details.frameAncestors) && details.frameAncestors.length > 0) {
+      const top = details.frameAncestors[details.frameAncestors.length - 1];
+      if (top && top.url) return hostOf(top.url);
+    }
+    return hostOf(details.documentUrl || details.originUrl || '');
+  }
+
   function isExtensionUrl(url) {
     return url.startsWith('moz-extension://') || url.startsWith('chrome-extension://');
   }
@@ -71,11 +121,12 @@
   async function initialize() {
     try {
       const stored = await browser.storage.local.get(
-        Object.assign({ blockedCount: 0 }, DEFAULT_SETTINGS)
+        Object.assign({ blockedCount: 0, disabled_domains: [] }, DEFAULT_SETTINGS)
       );
       for (const key of Object.keys(DEFAULT_SETTINGS)) {
         settings[key] = Boolean(stored[key]);
       }
+      disabledDomains = normalizeDomainList(stored.disabled_domains);
       if (engine) {
         engine.setBlockedCount(Number(stored.blockedCount) + engine.getBlockedCount());
       }
@@ -110,6 +161,9 @@
 
   browser.storage.onChanged.addListener(function(changes, areaName) {
     if (areaName !== 'local') return;
+    if (changes.disabled_domains) {
+      disabledDomains = normalizeDomainList(changes.disabled_domains.newValue);
+    }
     for (const key of Object.keys(DEFAULT_SETTINGS)) {
       if (changes[key]) {
         settings[key] = changes[key].newValue === undefined
@@ -121,7 +175,14 @@
 
   browser.webRequest.onBeforeRequest.addListener(
     function(details) {
-      if (!settings.adblockEnabled || !details.url || isExtensionUrl(details.url)) return {};
+      if (!details.url || isExtensionUrl(details.url)) return {};
+
+      if (details.type === 'main_frame' && typeof details.tabId === 'number' && details.tabId >= 0) {
+        tabHosts.set(details.tabId, hostOf(details.url));
+        tabBlocked.set(details.tabId, 0);
+      }
+
+      if (!isEnabledForHost(topHostForRequest(details))) return {};
 
       const url = details.url;
       const documentUrl = details.documentUrl || details.originUrl || details.initiator || null;
@@ -135,6 +196,7 @@
         const surrogateUrl = redirector.getSurrogateUrl(url);
         if (surrogateUrl) {
           if (engine) engine.recordBlocked();
+          countTabBlock(details.tabId);
           scheduleCountPersist();
           return { redirectUrl: surrogateUrl };
         }
@@ -142,11 +204,13 @@
 
       if (url.includes('youtube.com/pagead/') || url.includes('youtube.com/api/stats/ads')) {
         if (engine) engine.recordBlocked();
+        countTabBlock(details.tabId);
         scheduleCountPersist();
         return { cancel: true };
       }
 
       if (engine && engine.shouldBlock(url, details.type, documentUrl)) {
+        countTabBlock(details.tabId);
         scheduleCountPersist();
         return { cancel: true };
       }
@@ -204,25 +268,59 @@
     ['blocking', 'requestHeaders']
   );
 
-  browser.runtime.onMessage.addListener(function(message) {
+  if (browser.tabs && browser.tabs.onRemoved) {
+    browser.tabs.onRemoved.addListener(function(tabId) {
+      tabHosts.delete(tabId);
+      tabBlocked.delete(tabId);
+    });
+  }
+
+  if (browser.tabs && browser.tabs.onUpdated) {
+    browser.tabs.onUpdated.addListener(function(tabId, changeInfo) {
+      if (changeInfo && changeInfo.url) {
+        const host = hostOf(changeInfo.url);
+        if (host) tabHosts.set(tabId, host);
+      }
+    });
+  }
+
+  browser.runtime.onMessage.addListener(function(message, sender) {
     if (!message || typeof message.type !== 'string') return undefined;
 
+    if (message.type === 'GET_SITE_STATE') {
+      const tab = sender && sender.tab;
+      const host = tab
+        ? (hostOf(tab.url) || tabHosts.get(tab.id) || '')
+        : '';
+      return Promise.resolve({
+        ok: true,
+        enabled: isEnabledForHost(host),
+        host: host
+      });
+    }
+
     if (message.type === 'GET_STATS') {
+      const tabId = typeof message.tabId === 'number' ? message.tabId : -1;
+      const host = typeof message.host === 'string' ? message.host.toLowerCase() : '';
       return Promise.resolve({
         ok: true,
         blockedCount: engine ? engine.getBlockedCount() : 0,
+        tabBlocked: tabBlocked.get(tabId) || 0,
+        siteDisabled: isHostDisabled(host),
         settings: Object.assign({}, settings)
       });
     }
 
     if (message.type === 'POPUP_BLOCKED') {
       if (engine) engine.recordBlocked();
+      if (sender && sender.tab) countTabBlock(sender.tab.id);
       scheduleCountPersist();
       return Promise.resolve({ ok: true });
     }
 
     if (message.type === 'RESET_STATS') {
       if (engine) engine.resetBlockedCount();
+      tabBlocked.clear();
       if (countPersistTimer !== null) {
         clearTimeout(countPersistTimer);
         countPersistTimer = null;

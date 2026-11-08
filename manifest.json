@@ -2,7 +2,7 @@
   "manifest_version": 2,
   "name": "PhantomShield",
   "short_name": "PhantomShield",
-  "version": "8.1.0",
+  "version": "8.2.0",
   "description": "Bloqueo de anuncios y rastreadores con controles de privacidad para GeckoView.",
   "icons": {
     "48": "icons/icon-48.png",
